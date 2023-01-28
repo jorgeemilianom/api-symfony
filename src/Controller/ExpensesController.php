@@ -95,10 +95,8 @@ class ExpensesController extends AbstractController
             $ExpensesList = $this->serializer->normalize($ExpensesList, 'json');
 
             return new JsonResponse([
-                'meta' => [
-                    'code' => 200,
-                    'message' => 'Ok'
-                ],
+                'status' => true,
+                'message' => 'Ok',
                 'data' => [$ExpensesList],
             ], 200);
         } catch (\Throwable $th) {
