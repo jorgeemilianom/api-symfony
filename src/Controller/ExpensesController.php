@@ -48,7 +48,7 @@ class ExpensesController extends AbstractController
     {
         try {
             $ExpensesList = $this->entityManager->getRepository(MExpenses::class)->findAll();
-            $ExpensesList = $this->serializer->normalize($ExpensesList, 'json');
+            $ExpensesList = $this->serializer->normalize($ExpensesList[0], 'json');
 
             return new JsonResponse([
                 'status' => true,
