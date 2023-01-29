@@ -58,8 +58,9 @@ class ExpensesController extends AbstractController
             foreach($ExpensesList as $Expense){
                 if(!$Expense['checked']){
                     $pending_to_pay += $Expense['amount'];
+                }else{
+                    $total += $Expense['amount'];
                 }
-                $total += $Expense['amount'];
             }
 
             return new JsonResponse([
