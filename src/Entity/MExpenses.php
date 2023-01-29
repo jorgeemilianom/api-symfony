@@ -32,6 +32,16 @@ class MExpenses
      */
     private $amount;
 
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $checked;
+
+    /**
+     * @ORM\Column(type="integer")
+     */
+    private $user_id;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -69,6 +79,30 @@ class MExpenses
     public function setAmount(float $amount): self
     {
         $this->amount = $amount;
+
+        return $this;
+    }
+
+    public function isChecked(): ?bool
+    {
+        return $this->checked;
+    }
+
+    public function setChecked(bool $checked): self
+    {
+        $this->checked = $checked;
+
+        return $this;
+    }
+
+    public function getUserId(): ?int
+    {
+        return $this->user_id;
+    }
+
+    public function setUserId(int $user_id): self
+    {
+        $this->user_id = $user_id;
 
         return $this;
     }

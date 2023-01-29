@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\MExpenses;
+use App\Entity\Users;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -42,18 +43,37 @@ class ExpensesController extends AbstractController
     }
 
     /**
-     * @Route("/expenses/getall", name="expenses_getAll")
+     * @Route("/expenses/getall/{user_email}", name="expenses_getAll")
      */
-    public function getAll(): JsonResponse
+    public function getAll($user_email): JsonResponse
     {
         try {
-            $ExpensesList = $this->entityManager->getRepository(MExpenses::class)->findAll();
+            $User = $this->entityManager->getRepository(Users::class)->findOneBy(['email' => $user_email]);
+            $ExpensesList = $this->entityManager->getRepository(MExpenses::class)->findBy(['user_id' => $User->getId()]);
             $ExpensesList = $this->serializer->normalize($ExpensesList, 'json');
+
+            # Calculamos el monto total de gastos
+            $total = 0;
+            $pending_to_pay = 0;
+            foreach($ExpensesList as $Expense){
+                if(!$Expense['checked']){
+                    $pending_to_pay += $Expense['amount'];
+                }
+                $total += $Expense['amount'];
+            }
 
             return new JsonResponse([
                 'status' => true,
                 'message' => 'Ok',
-                'data' => $ExpensesList,
+                'data' => [
+                    'expenses' => $ExpensesList,
+                    'acount' => [
+                        'salary' => $User->getSalary(),
+                        'total' => $total,
+                        'status' => ($User->getSalary() - $total),
+                        'pending_to_pay' => $pending_to_pay
+                    ]
+                ]
             ], 200);
         } catch (\Throwable $th) {
             return new JsonResponse([
@@ -74,8 +94,9 @@ class ExpensesController extends AbstractController
             $E_name = $params['name'];
             $E_type = $params['type'];
             $E_amount = $params['amount'];
+            $U_id = $params['user_id'];
 
-            if (!$E_name || !$E_amount) {
+            if (!$E_name || !$E_amount || !$U_id) {
                 return new JsonResponse([
                     'status' => false,
                     'message' => 'Te faltó ingresar un valor obligatorio',
@@ -87,17 +108,47 @@ class ExpensesController extends AbstractController
             $Expense->setName($E_name);
             $Expense->setAmount($E_amount);
             $Expense->setType($E_type);
+            $Expense->setUserId($U_id);
 
             $this->entityManager->persist($Expense);
             $this->entityManager->flush();
 
-            $ExpensesList = $this->entityManager->getRepository(MExpenses::class)->findAll();
+            $ExpensesList = $this->entityManager->getRepository(MExpenses::class)->findBy(['user_id' => $U_id]);
             $ExpensesList = $this->serializer->normalize($ExpensesList, 'json');
 
             return new JsonResponse([
                 'status' => true,
                 'message' => 'Ok',
                 'data' => [$ExpensesList],
+            ], 200);
+        } catch (\Throwable $th) {
+            return new JsonResponse([
+                'status' => false,
+                'message' => $this->message500,
+                'data' => [],
+            ], 500);
+        }
+    }
+
+        /**
+     * @Route("/expenses/checked/{id}", name="expenses_checked", methods={"PUT"})
+     */
+    public function checkedExpense($id): JsonResponse
+    {
+        try {
+            $Expense = $this->entityManager->getRepository(MExpenses::class)->findOneBy(['id' => $id]);
+
+            $Expense->setChecked(!$Expense->isChecked());
+
+            $this->entityManager->persist($Expense);
+            $this->entityManager->flush();
+
+            $ExpensesData = $this->serializer->normalize($Expense, 'json');
+
+            return new JsonResponse([
+                'status' => true,
+                'message' => 'Ok',
+                'data' => $ExpensesData,
             ], 200);
         } catch (\Throwable $th) {
             return new JsonResponse([
